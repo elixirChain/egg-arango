@@ -14,6 +14,7 @@ class BaseService extends Service {
   constructor(_ctx) {
     super(_ctx);
     this.dao = this.ctx.dao;
+    this.errorCode = this.ctx.helper.errorCode;
     this.BizError = (error, code) => {
       if (process.env.NODE_ENV === 'development') {
         error = `${this.constructor.name} error:` + error;
@@ -106,16 +107,20 @@ class BaseService extends Service {
     return this.dao[this.getDaoName()].getEdges(_ids);
   }
 
-  async deleteEdge(_id) {
-    return this.dao[this.getDaoName()].deleteEdge(_id);
+  async outVertices(_params) {
+    return this.dao[this.getDaoName()].outVertices(_params);
   }
 
-  async deleteEdges(_ids) {
-    return this.dao[this.getDaoName()].deleteEdges(_ids);
+  async inVertices(_params) {
+    return this.dao[this.getDaoName()].inVertices(_params);
   }
 
-  async deleteEdgesByVertex(_params) {
-    return this.dao[this.getDaoName()].deleteEdgesByVertex(_params);
+  async outVerticesPage(_params) {
+    return this.dao[this.getDaoName()].outVerticesPage(_params);
+  }
+
+  async inVerticesPage(_params) {
+    return this.dao[this.getDaoName()].inVerticesPage(_params);
   }
 
   async saveEdge(_params) {
@@ -138,20 +143,16 @@ class BaseService extends Service {
     return this.dao[this.getDaoName()].updateEdges(_params);
   }
 
-  async outVertices(_params) {
-    return this.dao[this.getDaoName()].outVertices(_params);
+  async deleteEdge(_id) {
+    return this.dao[this.getDaoName()].deleteEdge(_id);
   }
 
-  async inVertices(_params) {
-    return this.dao[this.getDaoName()].inVertices(_params);
+  async deleteEdges(_ids) {
+    return this.dao[this.getDaoName()].deleteEdges(_ids);
   }
 
-  async outVerticesPage(_params) {
-    return this.dao[this.getDaoName()].outVerticesPage(_params);
-  }
-
-  async inVerticesPage(_params) {
-    return this.dao[this.getDaoName()].inVerticesPage(_params);
+  async deleteEdgesByVertex(_params) {
+    return this.dao[this.getDaoName()].deleteEdgesByVertex(_params);
   }
 
   /**

@@ -36,4 +36,8 @@ class SysError extends BaseError {
   }
 }
 
-module.exports = { BizError, SysError, BaseError };
+const errorCode = {
+  DUPLICATE: 40050,
+};
+
+module.exports = { BizError, SysError, BaseError, errorCode };

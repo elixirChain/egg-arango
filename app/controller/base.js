@@ -14,6 +14,7 @@ class BaseController extends Controller {
     super(_ctx);
     // 禁掉this.service访问
     this.service = 'Overwrite service. Can\'t use service directly, please use callService!';
+    this.errorCode = this.ctx.helper.errorCode;
     this.BizError = (error, code) => {
       if (process.env.NODE_ENV === 'development') {
         error = `${this.constructor.name} error:` + error;
@@ -33,7 +34,7 @@ class BaseController extends Controller {
       // controller 验证参数
       if (params_schema) {
         params_schema.validate(params, error => {
-          if (error !== null) {
+          if (!!error) {
             throw this.BizError('参数错误：' + error.message);
           }
         });
@@ -43,7 +44,7 @@ class BaseController extends Controller {
       // controller 验证响应结果
       if (result_schema) {
         result_schema.validate(result, error => {
-          if (error !== null) {
+          if (!!error) {
             throw this.BizError('结果错误：' + error.message);
           }
         });
