@@ -1,6 +1,6 @@
 {
   "name": "egg-arango",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Simple Api template for ArangoDB.",
   "main": "index.js",
   "eggPlugin": {
