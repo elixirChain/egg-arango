@@ -1,7 +1,7 @@
 'use strict';
 
 const path = require('path');
-const { BaseError } = require('_egg-arango@0.0.1@egg-arango/app/extend/lib/error');
+const { BaseError } = require('../app/extend/lib/error');
 
 module.exports = appInfo => {
   const config = exports = {};
