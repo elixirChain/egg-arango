@@ -14,8 +14,6 @@ module.exports = appInfo => {
 
   // arangodb 配置
   config.arango = {
-    app: true,
-    agent: false,
     client: {
       url: 'http://localhost:8529',
       username: 'user',
