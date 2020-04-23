@@ -1,6 +1,6 @@
 {
   "name": "egg-arango",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Simple Api template for ArangoDB.",
   "main": "index.js",
   "eggPlugin": {
@@ -38,7 +38,8 @@
     "test": "egg-bin pkgfiles && npm run test-local",
     "test-local": "egg-bin test",
     "cov": "egg-bin cov",
-    "lint": "eslint .",
+    "lint": "eslint . --ext .ts --ext .js",
+    "lint-fix": "eslint . --fix --ext .ts --ext .js",
     "ci": "egg-bin pkgfiles --check && npm run lint && npm run cov",
     "pkgfiles": "egg-bin pkgfiles",
     "autod": "autod"

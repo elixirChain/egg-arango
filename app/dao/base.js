@@ -151,9 +151,11 @@ class BaseDao {
 
   /**
    * 拼装过滤参数：使用FILTER可以利用索引（and连接）
-   * - （单数类型）默认双等号匹配
+   * - （单数类型）默认==匹配
    * - array类型使用in匹配
-   * @param {object} filter 查询单数对象
+   * - object{opr, value}类型使用指定操作符
+   * aql.join, aql.literal @see https://www.arangodb.com/docs/devel/appendix-java-script-modules-arango-db.html
+   * @param {object} filter 查询参数对象
    * @param {string} alias alias of collection
    * @return {AQL} obj
    */
@@ -165,19 +167,29 @@ class BaseDao {
     alias = this.aql.literal(alias);
 
     const filterAqlList = [];
+    const otherFilterAqlList = [];
     let filterAql;
     if (filter) {
       for (const key in filter) {
-        if (Array.isArray(filter[key])) {
-          // 支持数组参数
-          filterAqlList.push(this.aql` and ${alias}.${key} in ${filter[key]}`);
+        const value = filter[key];
+        if (Array.isArray(value)) {
+          // 数组参数，则‘in’
+          filterAqlList.push(this.aql` and ${alias}.${key} in ${value}`);
+        } else if (!!value && typeof value === 'object') {
+          /**
+           * 对象参数结构{opr, value}
+           * 支持：==, !=, <, <=, >, >=, IN, NOT IN, LIKE, =~, !~
+           * 注意: typeof null === 'object'
+           */
+          otherFilterAqlList.push(this.aql` and ${alias}.${key} ${this.aql.literal(value.opr)} ${value.value}`);
         } else {
-          // 单个参数
-          filterAqlList.push(this.aql` and ${alias}.${key} == ${filter[key]}`);
+          // 单个参数，默认‘==’
+          filterAqlList.push(this.aql` and ${alias}.${key} == ${value}`);
         }
       }
       if (filterAqlList.length !== 0) {
-        filterAql = this.aql.join(filterAqlList);
+        // otherFilterAqlList在后，符合最左匹配原则
+        filterAql = this.aql.join(filterAqlList.concat(otherFilterAqlList));
       }
     }
     return filterAql;
@@ -274,8 +286,8 @@ class BaseDao {
     }
     alias = this.aql.literal(alias);
 
-    // 默认时间倒序
-    const fieldAqlList = [ this.aql` ${alias}._create_date desc ` ];
+    // 默认时间倒序和_id倒序
+    const fieldAqlList = [ this.aql` ${alias}._create_date desc, ${alias}._id desc ` ];
     if (sorts) {
       // 删除默认排序
       fieldAqlList.shift();
@@ -501,6 +513,7 @@ class BaseDao {
       LET list = (
         FOR t IN ${collection} 
           FILTER t._status == true ${filterAql}
+          SORT t._create_date desc 
         RETURN ${resAQL}
       )
       ${staticDataAQL}`;
