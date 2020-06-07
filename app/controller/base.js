@@ -67,14 +67,12 @@ class BaseController extends Controller {
   }
 
   // 处理响应结果（正确响应报文）
-  success(data) {
-    if (!data || Object.keys(data).length === 0) {
-      throw this.BizError('响应数据为空！');
-    }
-
+  success(res) {
     return {
       code: 0,
-      ...data,
+      data: {
+        ...res,
+      },
     };
   }
 

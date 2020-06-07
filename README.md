@@ -44,7 +44,16 @@ exports.arango = {
 
 ```js
 // {app_root}/config/config.default.js
+
 exports.arango = {
+  client: {
+    url: [
+      'http://127.0.0.1:8529',
+    ],
+    username: 'dba',
+    password: 'psd',
+    database: 'dbName',
+  },
 };
 ```
 
@@ -52,7 +61,64 @@ see [config/config.default.js](config/config.default.js) for more detail.
 
 ## Example
 
-<!-- example here -->
+- Controller
+
+```js
+const { BaseController } = require('egg-arango');
+const Joi = require('@hapi/joi');
+
+class DemoController extends BaseController {
+  async demo() {
+    const { ctx, callService } = this;
+    const result = await callService(
+      'demo',
+      ctx.request.body,
+      Joi.object({
+        name: Joi.string().required(),
+      }).required()
+    );
+    ctx.body = this.success(result);
+  }
+
+}
+
+module.exports = DemoController;
+```
+
+- Service
+
+```js
+const { BaseService } = require('egg-arango');
+
+class DemoService extends BaseService {
+  /**
+    * description
+    * @param {object} params params
+    * @return {object} obj
+    */
+  async demo(params) {
+    const { demo } = await this.get(params._id);
+    if (demo && Object.keys(demo).length === 0) {
+      throw this.BizError(`[${params._id}] is not existed!`);
+    }
+    return { demo };
+  }
+
+}
+
+module.exports = DemoService;
+```
+
+- Dao
+
+```js
+const { BaseDao } = require('egg-arango');
+
+class DemoDao extends BaseDao {
+}
+
+module.exports = DemoDao;
+```
 
 ## Questions & Suggestions
 

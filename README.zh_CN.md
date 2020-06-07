@@ -53,15 +53,113 @@ exports.arango = {
 };
 ```
 
-## 使用场景
-
-- Why and What: 描述为什么会有这个插件，它主要在完成一件什么事情。
-尽可能描述详细。
-- How: 描述这个插件是怎样使用的，具体的示例代码，甚至提供一个完整的示例，并给出链接。
-
 ## 详细配置
 
-请到 [config/config.default.js](config/config.default.js) 查看详细配置项说明。
+```js
+// {app_root}/config/config.default.js
+
+exports.arango = {
+  client: {
+    url: [
+      'http://127.0.0.1:8529',
+    ],
+    username: 'dba',
+    password: 'psd',
+    database: 'dbName',
+  },
+};
+```
+
+see [config/config.default.js](config/config.default.js) for more detail.
+
+## 模板示例
+
+- Controller
+
+```js
+const { BaseController } = require('egg-arango');
+const Joi = require('@hapi/joi');
+
+/** doc插件 ctrl+shift+/ 快捷添加注释 */
+class DemoController extends BaseController {
+  /**
+   * controller开发规范：参数校验，访问转发。
+   *  - 不允许重写getServiceName；
+   *  - 只能使用callService调用同名service的服务;
+   *  - （默认使用）使用this.success处理响应结果;
+   */
+
+  async demo() {
+    const { ctx, callService } = this;
+    const result = await callService(
+      'demo',
+      ctx.request.body,
+      Joi.object({
+        name: Joi.string().required(),
+      }).required()
+    );
+    ctx.body = this.success(result);
+  }
+
+}
+
+module.exports = DemoController;
+```
+
+- Service
+
+```js
+const { BaseService } = require('egg-arango');
+
+/** doc插件 ctrl+shift+/ 快捷添加注释 */
+class DemoService extends BaseService {
+  /**
+   * service开发规范：具体业务逻辑，处理异常。
+   *  - （默认不需要）可以通过重写getDaoName可以指定dao层服务；
+   *  - 使用base方法，调用Dao层服务；
+   *   - 或重写base方法，实现新业务逻辑（注意：不能通过this.func调用同名方法）；
+   *   - 或调用多个dao组合复杂业务；
+   *   - 或者调用第三方接口；
+   */
+
+  /**
+    * 替换描述
+    * @param {object} params 参数
+    * @return {object} obj
+    */
+  async demo(params) {
+    const { demo } = await this.get(params._id);
+    if (demo && Object.keys(demo).length === 0) {
+      throw this.BizError(`[${params._id}]不存在!`);
+    }
+    return { demo };
+  }
+
+}
+
+module.exports = DemoService;
+```
+
+- Dao
+
+```js
+const { BaseDao } = require('egg-arango');
+
+/** doc插件 ctrl+shift+/ 快捷添加注释 */
+class DemoDao extends BaseDao {
+  /**
+   * 数据访问处理，基本文档查询参考 'BaseDao.md'。
+   *  - （默认不需要）可以通过重写getCollectionName可以指定collection；
+   *  - 和数据库collection一一对应；
+   *  - 只包含collection的数据操作，不能含有业务逻辑；
+   *  - 特殊情况再考虑使用自定义AQL调用this.query实现数据操作；
+  */
+
+
+}
+
+module.exports = DemoDao;
+```
 
 ## 单元测试
 
