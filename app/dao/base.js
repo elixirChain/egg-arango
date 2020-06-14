@@ -1,7 +1,7 @@
 'use strict';
 
 const Joi = require('@hapi/joi');
-const pluralize = require('pluralize');
+// const pluralize = require('pluralize');
 const moment = require('moment');
 
 /**
@@ -477,7 +477,8 @@ class BaseDao {
     const objs = await this.query(query);
     // 验证唯一性
     this.validateData(Joi.array().max(1), objs);
-    return { [this.getLowerCollectionName()]: this.convertArrayToObject(objs) };
+    return this.convertArrayToObject(objs);
+    // return { [this.getLowerCollectionName()]: this.convertArrayToObject(objs) };
   }
 
   // 兼容旧api
@@ -520,7 +521,8 @@ class BaseDao {
     const objs = await this.query(query);
     // TODO:验证唯一性
     // this.validateData(Joi.array().max(1), objs);
-    return { [this.getLowerCollectionName()]: this.convertArrayToObject(objs) };
+    return this.convertArrayToObject(objs);
+    // return { [this.getLowerCollectionName()]: this.convertArrayToObject(objs) };
   }
 
   // 使用getsByFilter
@@ -566,7 +568,7 @@ class BaseDao {
     const staticDataAQL = this.getStaticDataAql(_params.options);
 
     const collection = this.aql.literal(`${this.getCollectionName()}`);
-    const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
+    // const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
     const query = this.aql`
     LET tsl = (
       LET list = (
@@ -579,7 +581,8 @@ class BaseDao {
       )
       ${staticDataAQL}
     )
-    RETURN {${collections}: tsl}`;
+    RETURN tsl`;
+    // RETURN {${collections}: tsl}`;
     return this.convertArrayToObject(await this.query(query));
   }
 
@@ -624,7 +627,7 @@ class BaseDao {
     const staticDataAQL = this.getStaticDataAql(_params.options);
 
     const collection = this.aql.literal(`${this.getCollectionName()}`);
-    const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
+    // const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
     const query = this.aql`
       LET ts = ( 
         FOR t IN ${collection} 
@@ -646,7 +649,8 @@ class BaseDao {
       LET flag = (${_params.offset} + ${_params.count} >= totalCount) 
       LET end = flag ? totalCount : ${_params.offset} + ${_params.count} 
       LET hasMore = !flag 
-      RETURN {total_count:totalCount, has_more:hasMore, end:end, ${collections}:tsl}`;
+      RETURN {total_count:totalCount, has_more:hasMore, end:end, list:tsl}`;
+      // RETURN {total_count:totalCount, has_more:hasMore, end:end, ${collections}:tsl}`;
     return this.convertArrayToObject(await this.query(query));
   }
 
@@ -945,7 +949,7 @@ class BaseDao {
     const collectionName = this.getCollectionName();
     const collection = this.aql.literal(collectionName);
     const collectionNames = this.aql.literal(this.getWithCollectionNames());
-    const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
+    // const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
     const query = this.aql`
       WITH ${collectionNames}
       LET tsl = (
@@ -957,7 +961,8 @@ class BaseDao {
         )
         ${staticDataAQL}
       )
-      RETURN {${collections}: tsl}`;
+      RETURN tsl`;
+      // RETURN {${collections}: tsl}`;
     return this.convertArrayToObject(await this.query(query));
   }
 
@@ -1045,7 +1050,7 @@ class BaseDao {
     const collectionName = this.getCollectionName();
     const collection = this.aql.literal(collectionName);
     const collectionNames = this.aql.literal(this.getWithCollectionNames());
-    const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
+    // const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
     const query = this.aql`
       WITH ${collectionNames}
       LET vs = ( 
@@ -1070,7 +1075,8 @@ class BaseDao {
       LET flag = (${_params.offset} + ${_params.count} >= totalCount) 
       LET end = flag ? totalCount : ${_params.offset} + ${_params.count} 
       LET hasMore = !flag 
-      RETURN {total_count:totalCount, has_more:hasMore, end:end, ${collections}:vsl}`;
+      RETURN {total_count:totalCount, has_more:hasMore, end:end, list:vsl}`;
+      // RETURN {total_count:totalCount, has_more:hasMore, end:end, ${collections}:vsl}`;
     return this.convertArrayToObject(await this.query(query));
   }
 
@@ -1364,7 +1370,7 @@ class BaseDao {
     const collectionName = this.getCollectionName();
     const collection = this.aql.literal(collectionName);
     const collectionNames = this.aql.literal(this.getWithCollectionNames());
-    const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
+    // const collections = this.aql.literal(`${pluralize(this.getLowerCollectionName())}`);
     const query = this.aql`
       WITH ${collectionNames}
       LET tsl = (
@@ -1385,7 +1391,8 @@ class BaseDao {
         )
         ${staticDataAQL}
       )
-      RETURN {${collections}: tsl}`;
+      RETURN tsl`;
+      // RETURN {${collections}: tsl}`;
     return this.convertArrayToObject(await this.query(query));
   }
 

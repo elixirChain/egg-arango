@@ -38,6 +38,17 @@ class BaseService extends Service {
   }
 
   /**
+   * Utils API
+   */
+
+  async checkUnique(_params, message) {
+    const existedList = await this.getsByFilter({ filter: _params });
+    if (!!existedList && existedList.length > 0) {
+      throw this.BizError((!message ? '请确认已经存在相同的数据.' : message));
+    }
+  }
+
+  /**
    * Document API
    * All params comment refer to BaseDao.
    */

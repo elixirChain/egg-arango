@@ -70,9 +70,7 @@ class BaseController extends Controller {
   success(res) {
     return {
       code: 0,
-      data: {
-        ...res,
-      },
+      data: res,
     };
   }
 
