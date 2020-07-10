@@ -22,6 +22,7 @@ const moment = require('moment');
  * @refer:
  * https://www.arangodb.com/docs/3.4/aql/data-queries.html
  * https://www.arangodb.com/docs/3.4/aql/graphs-traversals.html
+ * https://www.arangodb.com/docs/3.4/drivers/js-reference-database-queries.html#aql
  * - WITH: optional for single server instances, but required for graph traversals in a cluster.
  */
 class BaseDao {
@@ -71,8 +72,10 @@ class BaseDao {
       keepAttrs: Joi.string(),
       // Graph depth: default 1..N, when true use N.
       depthLimit: Joi.boolean(),
-      // convert data flag for suffix _scode and _acode
-      convertFlag: Joi.boolean(),
+      // convert data flag for suffix _scode
+      convertStaticFlag: Joi.boolean(),
+      // convert data flag for suffix _acode
+      convertAreaFlag: Joi.boolean(),
     });
     // 模糊匹配条件验证
     this.likeSchema = Joi.object({
@@ -351,27 +354,27 @@ class BaseDao {
 
   /**
    * 静态数据转义
-   * - 使用code_type为字段名；
-   * - 使用[code_type]_name为转义名称；
+   * - 使用type为字段名；
+   * - 使用[type]_name为转义名称；
    * - 没有匹配则无转义，字段为undefined；
    * @param {object} options 配置项：转义标志
    * @param {string} resList 需要转义的结果，默认‘list’
    * @return {AqlQuery} aql
    */
   getStaticDataAql(options, resList) {
-    if (!options || !options.convertFlag) {
+    if (!options || !(options.convertStaticFlag || options.convertAreaFlag)) {
       return this.aql`for t in list return t`;
     }
     if (!resList) {
       resList = 'list';
     }
 
-    // 拼装转换AQL
-    return this.aql`
-    // 循环处理结果列表
-    for rt in ${this.aql.literal(resList)}
+    // 静态数据模板字符串
+    let staticAql = this.aql`let staticRet = {}`;
+    if (options.convertStaticFlag) {
+      staticAql = this.aql`
       // 获取静态数据属性
-      let codeTypes = (
+      let types = (
         for k in ATTRIBUTES(rt)
           FILTER LIKE(k, '%_scode')
         return k
@@ -379,9 +382,15 @@ class BaseDao {
       // 拼装静态数据对象：转义属性和值
       let staticRet = MERGE(
         for t in static_data
-          filter t.code_type in codeTypes and t.code == rt[t.code_type]
-        return {[CONCAT(t.code_type, '_name')]: t.name}
-      )
+          filter t.type in types and t.code == rt[t.type]
+        return {[CONCAT(t.type, '_name')]: t.name}
+      )`;
+    }
+
+    // 地区数据模板字符串
+    let areaAql = this.aql`let areaRet = {}`;
+    if (options.convertAreaFlag) {
+      areaAql = this.aql`
       // 获取地区数据属性
       let areaTypes = (
         for k in ATTRIBUTES(rt)
@@ -406,7 +415,15 @@ class BaseDao {
           )
           // 组合省市区code和名称
           return {[at]: area_codes, [CONCAT(at, '_name')]: area_code_name}
-      )
+      )`;
+    }
+
+    // 拼装转换AQL
+    return this.aql`
+    // 循环处理结果列表
+    for rt in ${this.aql.literal(resList)}
+      ${staticAql}
+      ${areaAql}
       // 合并结果
       return MERGE(rt, staticRet, areaRet)
     `;
