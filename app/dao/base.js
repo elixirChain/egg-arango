@@ -157,6 +157,7 @@ class BaseDao {
    * - （单数类型）默认==匹配
    * - array类型使用in匹配
    * - object{opr, value}类型使用指定操作符
+   *  - opr = 'POSITION' 时需要处理数组属性的查询参数
    * aql.join, aql.literal @see https://www.arangodb.com/docs/devel/appendix-java-script-modules-arango-db.html
    * @param {object} filter 查询参数对象
    * @param {string} alias alias of collection
@@ -169,25 +170,30 @@ class BaseDao {
     }
     alias = this.aql.literal(alias);
 
-    const filterAqlList = [];
-    const otherFilterAqlList = [];
     let filterAql;
     if (filter) {
+      const filterAqlList = [];
+      const otherFilterAqlList = [];
       for (const key in filter) {
-        const value = filter[key];
-        if (Array.isArray(value)) {
+        const data = filter[key];
+        if (Array.isArray(data)) {
           // 数组参数，则‘in’
-          filterAqlList.push(this.aql` and ${alias}.${key} in ${value}`);
-        } else if (!!value && typeof value === 'object') {
+          filterAqlList.push(this.aql` and ${alias}.${key} in ${data}`);
+        } else if (!!data && typeof data === 'object') {
           /**
            * 对象参数结构{opr, value}
            * 支持：==, !=, <, <=, >, >=, IN, NOT IN, LIKE, =~, !~
            * 注意: typeof null === 'object'
+           * 增加：opr = 'POSITION' 时需要处理数组属性的查询参数
            */
-          otherFilterAqlList.push(this.aql` and ${alias}.${key} ${this.aql.literal(value.opr)} ${value.value}`);
+          if (data.opr === 'POSITION') {
+            filterAqlList.push(this.getArrayAttrAql(alias, key, data.value));
+          } else {
+            otherFilterAqlList.push(this.aql` and ${alias}.${key} ${this.aql.literal(data.opr)} ${data.value}`);
+          }
         } else {
           // 单个参数，默认‘==’
-          filterAqlList.push(this.aql` and ${alias}.${key} == ${value}`);
+          filterAqlList.push(this.aql` and ${alias}.${key} == ${data}`);
         }
       }
       if (filterAqlList.length !== 0) {
@@ -196,6 +202,30 @@ class BaseDao {
       }
     }
     return filterAql;
+  }
+
+  /**
+   * data: value(string/array)
+   * 处理数组属性的查询参数
+   */
+  getArrayAttrAql(alias, key, data) {
+    const arrayAttrAqlList = [];
+    // filter 隐含了 ‘and’条件，所以只需要所有的 ‘or’ 条件连接在一个 filter 即可
+    arrayAttrAqlList.push(this.aql`\nFILTER `);
+    // 数组拆分元素用 or 连接
+    if (Array.isArray(data)) {
+      // 处理 or 条件
+      data && data.forEach((el, idx) => {
+        if (idx === data.length - 1) {
+          arrayAttrAqlList.push(this.aql`${el} in ${alias}.${key} `);
+        } else {
+          arrayAttrAqlList.push(this.aql`${el} in ${alias}.${key} or `);
+        }
+      });
+    } else {
+      arrayAttrAqlList.push(this.aql`${data} in ${alias}.${key}`);
+    }
+    return this.aql.join(arrayAttrAqlList)
   }
 
   /**
@@ -218,9 +248,11 @@ class BaseDao {
     const andAqlList = [];
     let orAql;
     let andAql;
-    // 分别处理or 和 and 对象
+    // 分别处理 or 和 and 对象
     if (like) {
+      // 处理 or 条件
       like.or && like.or.forEach((el, idx) => {
+        // filter 隐含了 ‘and’条件，所以只需要所有的 ‘or’ 条件连接在一个 filter 即可
         if (idx === 0) {
           orAqlList.push(this.aql`\nFILTER `);
         }
@@ -235,6 +267,8 @@ class BaseDao {
           orAqlList.push(this.aql`LIKE(${alias}.${el.field}, ${el.search}${caseInsensitive}) or `);
         }
       });
+
+      // 处理 and 条件
       like.and && like.and.forEach(el => {
         // 大小写敏感
         let caseInsensitive;
