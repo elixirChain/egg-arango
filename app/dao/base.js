@@ -210,12 +210,12 @@ class BaseDao {
    */
   getArrayAttrAql(alias, key, data) {
     const arrayAttrAqlList = [];
-    // filter 隐含了 ‘and’条件，所以只需要所有的 ‘or’ 条件连接在一个 filter 即可
-    arrayAttrAqlList.push(this.aql`\nFILTER `);
     // 数组拆分元素用 or 连接
     if (Array.isArray(data)) {
       // 处理 or 条件
       data && data.forEach((el, idx) => {
+        // filter 隐含了 ‘and’条件，所以只需要所有的 ‘or’ 条件连接在一个 filter 即可
+        arrayAttrAqlList.push(this.aql`\nFILTER `);
         if (idx === data.length - 1) {
           arrayAttrAqlList.push(this.aql`${el} in ${alias}.${key} `);
         } else {
@@ -223,7 +223,7 @@ class BaseDao {
         }
       });
     } else {
-      arrayAttrAqlList.push(this.aql`${data} in ${alias}.${key}`);
+      arrayAttrAqlList.push(this.aql`\nFILTER ${data} in ${alias}.${key}`);
     }
     return this.aql.join(arrayAttrAqlList)
   }
