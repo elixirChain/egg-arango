@@ -174,6 +174,7 @@ class BaseDao {
     if (filter) {
       const filterAqlList = [];
       const otherFilterAqlList = [];
+      const arrayAttrAqlList = [];
       for (const key in filter) {
         const data = filter[key];
         if (Array.isArray(data)) {
@@ -187,7 +188,7 @@ class BaseDao {
            * 增加：opr = 'POSITION' 时需要处理数组属性的查询参数
            */
           if (data.opr === 'POSITION') {
-            filterAqlList.push(this.getArrayAttrAql(alias, key, data.value));
+            arrayAttrAqlList.push(this.getArrayAttrAql(alias, key, data.value));
           } else {
             otherFilterAqlList.push(this.aql` and ${alias}.${key} ${this.aql.literal(data.opr)} ${data.value}`);
           }
@@ -198,7 +199,7 @@ class BaseDao {
       }
       if (filterAqlList.length !== 0) {
         // otherFilterAqlList在后，符合最左匹配原则
-        filterAql = this.aql.join(filterAqlList.concat(otherFilterAqlList));
+        filterAql = this.aql.join(filterAqlList.concat(otherFilterAqlList).concat(arrayAttrAqlList));
       }
     }
     return filterAql;
@@ -1380,10 +1381,10 @@ class BaseDao {
       _params
     );
 
-    // 路径长度: 默认为1
-    let depth = '1';
-    if (_params.depth && _params.depth > 1) {
-      if (_params.options && _params.options.depthLimit) {
+    // 路径长度: 默认为0
+    let depth = '0';
+    if (_params.depth && _params.depth > 0) {
+      if (_params.options && _params.options.depthLimit || _params.depth === 1) {
         depth = _params.depth.toString();
       } else {
         depth = `1..${_params.depth}`;
