@@ -215,8 +215,11 @@ class BaseDao {
     if (Array.isArray(data)) {
       // 处理 or 条件
       data && data.forEach((el, idx) => {
+        if (idx === 0) {
+          arrayAttrAqlList.push(this.aql`\nFILTER `);
+        }
+
         // filter 隐含了 ‘and’条件，所以只需要所有的 ‘or’ 条件连接在一个 filter 即可
-        arrayAttrAqlList.push(this.aql`\nFILTER `);
         if (idx === data.length - 1) {
           arrayAttrAqlList.push(this.aql`${el} in ${alias}.${key} `);
         } else {
