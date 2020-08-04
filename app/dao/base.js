@@ -172,7 +172,7 @@ class BaseDao {
 
     let filterAql;
     if (filter) {
-      const filterAqlList = [];
+      let filterAqlList = [];
       const otherFilterAqlList = [];
       const arrayAttrAqlList = [];
       for (const key in filter) {
@@ -197,9 +197,10 @@ class BaseDao {
           filterAqlList.push(this.aql` and ${alias}.${key} == ${data}`);
         }
       }
+      // otherFilterAqlList在后，符合最左匹配原则
+      filterAqlList = filterAqlList.concat(otherFilterAqlList).concat(arrayAttrAqlList);
       if (filterAqlList.length !== 0) {
-        // otherFilterAqlList在后，符合最左匹配原则
-        filterAql = this.aql.join(filterAqlList.concat(otherFilterAqlList).concat(arrayAttrAqlList));
+        filterAql = this.aql.join(filterAqlList);
       }
     }
     return filterAql;
@@ -328,7 +329,8 @@ class BaseDao {
     alias = this.aql.literal(alias);
 
     // 默认时间倒序和_id倒序
-    const fieldAqlList = [ this.aql` ${alias}._create_date desc, ${alias}._id desc ` ];
+    // const fieldAqlList = [ this.aql` ${alias}._create_date desc, ${alias}._id desc ` ];
+    const fieldAqlList = [ this.aql` ${alias}._id ` ];
     if (sorts) {
       // 删除默认排序
       fieldAqlList.shift();
