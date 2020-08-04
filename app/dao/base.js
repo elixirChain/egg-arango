@@ -335,11 +335,7 @@ class BaseDao {
       // 删除默认排序
       fieldAqlList.shift();
       sorts && sorts.forEach((el, idx) => {
-        if (idx === sorts.length - 1) {
-          fieldAqlList.push(this.aql`${alias}.${el.field} ${!el.direction ? '' : el.direction}`);
-        } else {
-          fieldAqlList.push(this.aql`${alias}.${el.field} ${!el.direction ? '' : el.direction}, `);
-        }
+        fieldAqlList.push(this.aql`${alias}.${el.field} ${!el.direction ? '' : el.direction}`);
       });
     }
     return fieldAqlList;
