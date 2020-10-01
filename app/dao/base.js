@@ -56,12 +56,12 @@ class BaseDao {
         field: Joi.string().required(),
         direction: Joi.string().valid('', 'asc', 'desc', 'ASC', 'DESC'),
       }).required());
-    // 至少含有一个属性，且属性值不能为空或非法字符
-    this.filterMinSchema = Joi.object().min(1).pattern(/.*/, Joi.any().invalid('', null, NaN, Infinity).required());
-    // 更新时，属性可为null，使用OPTIONS{keepNull: false}可删除属性
-    this.filterUpdateSchema = Joi.object().min(1).pattern(/.*/, Joi.any().invalid('', NaN, Infinity).required());
-    // 通用查询过滤条件验证
-    this.filterSchema = Joi.object().pattern(/.*/, Joi.any().invalid('', null, NaN, Infinity).required());
+    // 最少一个不为非法不可空（保存/查询单个）：限制至少一个属性，不为空（'', null），不允许非法字符
+    this.filterMinRequired = Joi.object().min(1).pattern(/.*/, Joi.any().invalid('', null, NaN, Infinity).required());
+    // 最少一个不为非法可空（修改）：限制至少一个属性，允许空（'', null），不允许非法字符
+    this.filterMinValid = Joi.object().min(1).pattern(/.*/, Joi.any().invalid(NaN, Infinity).required());
+    // 通用查询条件验证（一般查询）：不限制空，允许空（'', null），不允许非法字符
+    this.filterCommon = Joi.object().pattern(/.*/, Joi.any().invalid(NaN, Infinity).required());
     // 边表查询Options
     this.optionsSchema = Joi.object({
       // Edge RES: default return v, when true return {v, e}.
@@ -549,7 +549,7 @@ class BaseDao {
   async getOneByFilter(_params) {
     this.validateData(
       Joi.object({
-        filter: this.filterMinSchema.required(),
+        filter: this.filterMinRequired.required(),
         options: this.optionsSchema,
       }),
       _params
@@ -601,7 +601,7 @@ class BaseDao {
   async getsByFilter(_params) {
     this.validateData(
       Joi.object({
-        filter: this.filterMinSchema,
+        filter: this.filterMinRequired,
         like: this.likeSchema,
         sorts: this.sortSchema,
         options: this.optionsSchema,
@@ -656,7 +656,7 @@ class BaseDao {
       Joi.object({
         page_num: Joi.number().integer().required(),
         page_size: Joi.number().integer().required(),
-        filter: this.filterSchema,
+        filter: this.filterCommon,
         like: this.likeSchema,
         sorts: this.sortSchema,
         options: this.optionsSchema,
@@ -713,7 +713,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async save(doc) {
-    this.validateData(this.filterMinSchema.required(), doc);
+    this.validateData(this.filterMinRequired.required(), doc);
     const create_date = moment().format('YYYY-MM-DD HH:mm:ss');
     const collection = this.aql.literal(`${this.getCollectionName()}`);
     const query = this.aql`
@@ -732,7 +732,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async saves(docs) {
-    this.validateData(Joi.array().min(1).items(this.filterMinSchema.required()), docs);
+    this.validateData(Joi.array().min(1).items(this.filterMinRequired.required()), docs);
     const create_date = moment().format('YYYY-MM-DD HH:mm:ss');
     const collection = this.aql.literal(`${this.getCollectionName()}`);
     const query = this.aql`
@@ -760,17 +760,19 @@ class BaseDao {
     this.validateData(
       Joi.object({
         _id: Joi.string().required(),
-        newObj: this.filterUpdateSchema.required(),
+        newObj: this.filterMinValid.required(),
+        aqlOption: this.filterCommon,
       }).required(),
       _params
     );
     const update_date = moment().format('YYYY-MM-DD HH:mm:ss');
     const collection = this.aql.literal(`${this.getCollectionName()}`);
+    const aqlOption = this.aql.literal(`OPTIONS ${_params.aqlOption}`);
     const query = this.aql`
     FOR t IN ${collection} 
       FILTER t._id == ${_params._id} and t._status == true 
         UPDATE t WITH MERGE(UNSET(${_params.newObj}, ${this.unset}), { _update_date:${update_date}})
-        IN ${collection} OPTIONS { keepNull: false }
+        IN ${collection} ${aqlOption}
         RETURN {_id: NEW._id}`;
     const objs = await this.query(query);
     // 验证是否保存成功
@@ -790,7 +792,7 @@ class BaseDao {
       Joi.object({
         _ids: Joi.array().min(1).items(Joi.string().required())
           .required(),
-        newObj: this.filterUpdateSchema.required(),
+        newObj: this.filterMinValid.required(),
       }).required(),
       _params
     );
@@ -824,7 +826,8 @@ class BaseDao {
       Joi.array().min(1).items(
         Joi.object({
           _id: Joi.string().required(),
-          newObj: this.filterUpdateSchema.required(),
+          newObj: this.filterMinValid.required(),
+          aqlOption: this.filterCommon,
         }))
         .required(),
       _params
@@ -964,8 +967,8 @@ class BaseDao {
     this.validateData(
       Joi.object({
         _id: Joi.string().required(),
-        v_filter: this.filterSchema,
-        e_filter: this.filterSchema,
+        v_filter: this.filterCommon,
+        e_filter: this.filterCommon,
         v_sorts: this.sortSchema,
         e_sorts: this.sortSchema,
         options: this.optionsSchema,
@@ -1056,8 +1059,8 @@ class BaseDao {
         _id: Joi.string().required(),
         page_num: Joi.number().integer().required(),
         page_size: Joi.number().integer().required(),
-        v_filter: this.filterSchema,
-        e_filter: this.filterSchema,
+        v_filter: this.filterCommon,
+        e_filter: this.filterCommon,
         v_like: this.likeSchema,
         e_like: this.likeSchema,
         v_sorts: this.sortSchema,
@@ -1146,7 +1149,7 @@ class BaseDao {
       Joi.object({
         _from: Joi.string().required(),
         _to: Joi.string().required(),
-        attrs: this.filterMinSchema,
+        attrs: this.filterMinRequired,
       }).required(),
       _params
     );
@@ -1181,7 +1184,7 @@ class BaseDao {
       Joi.array().min(1).items(Joi.object().keys({
         _from: Joi.string().required(),
         _to: Joi.string().required(),
-        attrs: this.filterMinSchema,
+        attrs: this.filterMinRequired,
       }).required())
         .required(),
       _params
@@ -1326,7 +1329,7 @@ class BaseDao {
         FOR t IN ${collection} 
         FILTER t._status == true ${filterAql}
           UPDATE t WITH { _status: false, _update_date:${update_date} }
-          IN ${collection} OPTIONS { keepNull: false }
+          IN ${collection}
           RETURN NEW._id
       )
       RETURN {_ids: tsl}`;
@@ -1373,8 +1376,8 @@ class BaseDao {
       Joi.object({
         start_id: Joi.string().required(),
         depth: Joi.number().integer().required(),
-        v_filter: this.filterSchema,
-        e_filter: this.filterSchema,
+        v_filter: this.filterCommon,
+        e_filter: this.filterCommon,
         v_sorts: this.sortSchema,
         e_sorts: this.sortSchema,
         options: this.optionsSchema,

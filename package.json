@@ -1,6 +1,6 @@
 {
   "name": "egg-arango",
-  "version": "2.0.9",
+  "version": "2.10.01",
   "description": "Simple Api template for ArangoDB.",
   "main": "index.js",
   "eggPlugin": {
@@ -55,12 +55,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eggjs/egg-arango.git"
+    "url": "git+https://github.com/elixirChain/egg-arango.git"
   },
   "bugs": {
     "url": "https://github.com/eggjs/egg/issues"
   },
-  "homepage": "https://github.com/eggjs/egg-arango#readme",
+  "homepage": "https://github.com/elixirChain/egg-arango#readme",
   "author": "senique,17",
   "license": "MIT"
 }
