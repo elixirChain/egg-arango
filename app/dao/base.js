@@ -126,18 +126,27 @@ class BaseDao {
     return this.ctx.helper.lowerCamelize(this.getCollectionName());
   }
 
+  validateParams(joi_schema, params) {
+    this.validateData(joi_schema, params, 'QRY PARAMS: ');
+  }
+  validateRes(joi_schema, params) {
+    this.validateData(joi_schema, params, 'QRY RES: ');
+  }
   /**
    * 统一校验函数
    * @param {object} joi_schema joi对象
    * @param {any} params 校验对象
    * @return {boolean} flag
    */
-  validateData(joi_schema, params) {
+  validateData(joi_schema, params, desc) {
     if (joi_schema) {
+      if (!desc) {
+        desc = 'params';
+      }
       const { error } = joi_schema.validate(params);
       if (!!error) {
-        this.logger.error(`${this.constructor.name} params: `, params);
-        throw this.BizError(error.message);
+        this.logger.error(`${this.constructor.name} ${desc}: `, params);
+        throw this.BizError(desc + error.message);
       } else {
         return true;
       }
@@ -335,7 +344,11 @@ class BaseDao {
       // 删除默认排序
       fieldAqlList.shift();
       sorts && sorts.forEach((el, idx) => {
-        fieldAqlList.push(this.aql`${alias}.${el.field} ${!el.direction ? '' : el.direction}`);
+        if (!el.direction) {
+          fieldAqlList.push(this.aql`${alias}.${el.field}`);
+        } else {
+          fieldAqlList.push(this.aql`${alias}.${el.field} ${el.direction}`);
+        }
       });
     }
     return fieldAqlList;
@@ -465,13 +478,15 @@ class BaseDao {
     `;
   }
 
-  // 打印Aql
-  logQueryAql(query) {
-    let aqlStr = query.query;
+  // 获取打印Aql
+  getQueryAql(query) {
+    let aqlStr = query.query.toString();
     for (const key in query.bindVars) {
-      aqlStr = aqlStr.toString().replace(new RegExp(`@${key}`, 'gim'), JSON.stringify(query.bindVars[key]));
+      aqlStr = aqlStr.replace(new RegExp(`@${key}`, 'gim'), JSON.stringify(query.bindVars[key]));
+      // 替换 ."attr" 为 .attr（比如 t."attr" => t.attr）
+      aqlStr = aqlStr.replace(/\."([^"]*)"/g, ".$1");
     }
-    this.logger.debug('\nAQL:\n' + aqlStr);
+    return aqlStr;
   }
 
   /**
@@ -482,9 +497,10 @@ class BaseDao {
    */
   async query(_query, _opt) {
     try {
-      this.logQueryAql(_query);
+      this.logger.debug(`\nAQL:\n${this.getQueryAql(_query)}\n`);
       return (await this.arango.query(_query, _opt)).all();
     } catch (error) {
+      this.logger.error(`\nAQL ERROR:\n${this.getQueryAql(_query)}\n`);
       throw this.BizError('Execute AQL ERROR: ' + error.message);
     }
   }
@@ -506,7 +522,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async getOne(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.object({
         _id: Joi.string().required(),
         options: this.optionsSchema,
@@ -529,7 +545,7 @@ class BaseDao {
       ${staticDataAQL}`;
     const objs = await this.query(query);
     // 验证唯一性
-    this.validateData(Joi.array().max(1), objs);
+    this.validateRes(Joi.array().max(1), objs);
     return this.convertArrayToObject(objs);
     // return { [this.getLowerCollectionName()]: this.convertArrayToObject(objs) };
   }
@@ -547,7 +563,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async getOneByFilter(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.object({
         filter: this.filterMinRequired.required(),
         options: this.optionsSchema,
@@ -573,7 +589,7 @@ class BaseDao {
       ${staticDataAQL}`;
     const objs = await this.query(query);
     // TODO:验证唯一性
-    // this.validateData(Joi.array().max(1), objs);
+    // this.validateRes(Joi.array().max(1), objs);
     return this.convertArrayToObject(objs);
     // return { [this.getLowerCollectionName()]: this.convertArrayToObject(objs) };
   }
@@ -599,7 +615,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async getsByFilter(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.object({
         filter: this.filterMinRequired,
         like: this.likeSchema,
@@ -652,7 +668,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async getPage(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.object({
         page_num: Joi.number().integer().required(),
         page_size: Joi.number().integer().required(),
@@ -713,7 +729,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async save(doc) {
-    this.validateData(this.filterMinRequired.required(), doc);
+    this.validateParams(this.filterMinRequired.required(), doc);
     const create_date = moment().format('YYYY-MM-DD HH:mm:ss');
     const collection = this.aql.literal(`${this.getCollectionName()}`);
     const query = this.aql`
@@ -722,7 +738,7 @@ class BaseDao {
       RETURN {_id: NEW._id}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().length(1), objs);
+    this.validateRes(Joi.array().length(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -732,7 +748,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async saves(docs) {
-    this.validateData(Joi.array().min(1).items(this.filterMinRequired.required()), docs);
+    this.validateParams(Joi.array().min(1).items(this.filterMinRequired.required()), docs);
     const create_date = moment().format('YYYY-MM-DD HH:mm:ss');
     const collection = this.aql.literal(`${this.getCollectionName()}`);
     const query = this.aql`
@@ -745,7 +761,7 @@ class BaseDao {
     RETURN {_ids: tsl}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().min(1), objs);
+    this.validateRes(Joi.array().min(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -757,17 +773,22 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async update(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.object({
         _id: Joi.string().required(),
         newObj: this.filterMinValid.required(),
-        aqlOption: this.filterCommon,
+        aqlOption: Joi.string(),
       }).required(),
       _params
     );
     const update_date = moment().format('YYYY-MM-DD HH:mm:ss');
     const collection = this.aql.literal(`${this.getCollectionName()}`);
-    const aqlOption = this.aql.literal(`OPTIONS ${_params.aqlOption}`);
+
+    // 更新配置项
+    let aqlOption = this.aql.literal(``);
+    if (!!_params.aqlOption) {
+      aqlOption = this.aql.literal(`OPTIONS ${_params.aqlOption}`);
+    }
     const query = this.aql`
     FOR t IN ${collection} 
       FILTER t._id == ${_params._id} and t._status == true 
@@ -776,7 +797,7 @@ class BaseDao {
         RETURN {_id: NEW._id}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().length(1), objs);
+    this.validateRes(Joi.array().length(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -788,7 +809,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async updates(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.object({
         _ids: Joi.array().min(1).items(Joi.string().required())
           .required(),
@@ -810,7 +831,7 @@ class BaseDao {
     RETURN {_ids: tsl}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().min(1), objs);
+    this.validateRes(Joi.array().min(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -822,7 +843,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async updatesEach(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.array().min(1).items(
         Joi.object({
           _id: Joi.string().required(),
@@ -846,7 +867,7 @@ class BaseDao {
     RETURN {_ids: tsl}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().min(1), objs);
+    this.validateRes(Joi.array().min(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -856,7 +877,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async delete(_id) {
-    this.validateData(Joi.string().required(), _id);
+    this.validateParams(Joi.string().required(), _id);
     const collection = this.aql.literal(`${this.getCollectionName()}`);
     const query = this.aql`
       LET key = PARSE_IDENTIFIER(${_id}).key 
@@ -865,7 +886,7 @@ class BaseDao {
       RETURN {_id: NEW._id}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().length(1), objs);
+    this.validateRes(Joi.array().length(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -875,7 +896,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async physicalDelete(_id) {
-    this.validateData(Joi.string().required(), _id);
+    this.validateParams(Joi.string().required(), _id);
     const collection = this.aql.literal(`${this.getCollectionName()}`);
     const query = this.aql`
       LET key = PARSE_IDENTIFIER(${_id}).key 
@@ -883,7 +904,7 @@ class BaseDao {
       RETURN {_id: OLD._id}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().length(1), objs);
+    this.validateRes(Joi.array().length(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -893,7 +914,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async deletes(_ids) {
-    this.validateData(Joi.array().min(1).items(Joi.string().required()), _ids);
+    this.validateParams(Joi.array().min(1).items(Joi.string().required()), _ids);
     const collection = this.aql.literal(`${this.getCollectionName()}`);
     const query = this.aql`
     let tsl = (
@@ -906,7 +927,7 @@ class BaseDao {
     RETURN {_ids: tsl}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().min(1), objs);
+    this.validateRes(Joi.array().min(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -960,11 +981,11 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async getVertices(direction, _params) {
-    this.validateData(
+    this.validateParams(
       Joi.string().valid('OUTBOUND', 'INBOUND', 'ANY').required(),
       direction
     );
-    this.validateData(
+    this.validateParams(
       Joi.object({
         _id: Joi.string().required(),
         v_filter: this.filterCommon,
@@ -1050,11 +1071,11 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async getVerticesPage(direction, _params) {
-    this.validateData(
+    this.validateParams(
       Joi.string().valid('OUTBOUND', 'INBOUND', 'ANY').required(),
       direction
     );
-    this.validateData(
+    this.validateParams(
       Joi.object({
         _id: Joi.string().required(),
         page_num: Joi.number().integer().required(),
@@ -1145,7 +1166,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async saveEdge(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.object({
         _from: Joi.string().required(),
         _to: Joi.string().required(),
@@ -1167,7 +1188,7 @@ class BaseDao {
       RETURN {_id: NEW._id}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().length(1), objs);
+    this.validateRes(Joi.array().length(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -1180,7 +1201,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async saveEdges(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.array().min(1).items(Joi.object().keys({
         _from: Joi.string().required(),
         _to: Joi.string().required(),
@@ -1211,7 +1232,7 @@ class BaseDao {
       RETURN {_ids: tsl}`;
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().min(1), objs);
+    this.validateRes(Joi.array().min(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -1223,7 +1244,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async updateEdge(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.object({
         _id: Joi.string().required(),
         newObj: Joi.object().keys({
@@ -1244,7 +1265,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async updateEdges(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.object({
         _ids: Joi.array().min(1).items(Joi.string().required())
           .required()
@@ -1269,7 +1290,7 @@ class BaseDao {
    * @return {AqlQuery} - interface AqlQuery by arangodb
    */
   async updateEdgesEach(_params) {
-    this.validateData(
+    this.validateParams(
       Joi.array().min(1).items(
         Joi.object({
           _id: Joi.string().required(),
@@ -1314,7 +1335,7 @@ class BaseDao {
    */
   async deleteEdgesByVertex(_params) {
     // 通过_from或者_to删除边表数据（_from, _to至少存在一个，且不能为undefined）
-    this.validateData(
+    this.validateParams(
       Joi.object().or('_from', '_to').pattern(/.*/, [ Joi.string().required(), Joi.array().min(1).required() ]),
       _params
     );
@@ -1336,7 +1357,7 @@ class BaseDao {
 
     const objs = await this.query(query);
     // 验证是否保存成功
-    this.validateData(Joi.array().min(1), objs);
+    this.validateRes(Joi.array().min(1), objs);
     return this.convertArrayToObject(objs);
   }
 
@@ -1368,11 +1389,11 @@ class BaseDao {
    * @return {object} obj
    */
   async getGraphVertices(direction, _params) {
-    this.validateData(
+    this.validateParams(
       Joi.string().valid('OUTBOUND', 'INBOUND', 'ANY').required(),
       direction
     );
-    this.validateData(
+    this.validateParams(
       Joi.object({
         start_id: Joi.string().required(),
         depth: Joi.number().integer().required(),

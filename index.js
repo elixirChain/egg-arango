@@ -1,11 +1,7 @@
-'use strict';
+/**
+ * @namespace egg-arango
+ */
 
-const BaseController = require('./app/controller/base');
-const BaseService = require('./app/service/base');
-const BaseDao = require('./app/dao/base');
-
-module.exports = {
-  BaseController,
-  BaseService,
-  BaseDao,
-};
+exports.BaseController = require('./app/controller/base');
+exports.BaseService = require('./app/service/base');
+exports.BaseDao = require('./app/dao/base');
