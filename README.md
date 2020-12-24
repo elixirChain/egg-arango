@@ -65,7 +65,7 @@ see [config/config.default.js](config/config.default.js) for more detail.
 
 ```js
 const { BaseController } = require('egg-arango');
-const Joi = require('@hapi/joi');
+const Joi = require('joi');
 
 class DemoController extends BaseController {
   async demo() {
