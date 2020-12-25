@@ -1,6 +1,6 @@
 {
   "name": "egg-arango",
-  "version": "2.11.0",
+  "version": "2.12.0",
   "description": "Simple Api template for ArangoDB.",
   "main": "index.js",
   "eggPlugin": {
@@ -48,8 +48,26 @@
     "app",
     "config",
     "app.js",
-    "lib"
+    "lib",
+    "index.d.ts"
   ],
+  "types": "index.d.ts",
+  "egg": {
+    "framework": "egg",
+    "tsHelper": {
+      "watchDirs": {
+        "dao": {
+          "directory": "app/dao",
+          "inject": "app",
+          "caseStyle": "lower",
+          "enabled": true,
+          "generator": "class",
+          "interface": "IDao",
+          "interfaceHandle": "AutoInstanceType<typeof {{ 0 }}>"
+        }
+      }
+    }
+  },
   "ci": {
     "version": "8, 10"
   },
