@@ -13,4 +13,3 @@ yarn.lock
 *.un~
 .nyc_output/
 !.autod.conf.js
-.vscode
