@@ -968,53 +968,53 @@ declare module 'egg-arango' {
   /** lcj */
   export class BaseController extends Controller {
     /** limit controller only call the service with the same name*/
-    protected async callService(service_name: string, params?: string, params_schema?: string, result_schema?: string): object;
+    protected async callService(service_name: string, params?: any, params_schema?: any, result_schema?: any): any;
     /** process res */
-    protected success(res: object): object;
+    protected success(res: object): any;
   }
   export class BaseService extends Service {
     // constructor(ctx: Context) {
     //   super(ctx);
     // }
     // protected dao: Dao;
+
+    protected getDaoName(): string;
+    protected async checkUnique(_params: object, message: string): void;
+    
     protected errorCode: string | '-1';
-    protected BizError(error: string, code?: string): object;
+    protected BizError(error: string, code?: string): any;
 
-    protected getDaoName(): object;
+    protected async get(_id: object, options?: object): any;
+    protected async getByFilter(filter: object, options?: object): any;
+    protected async gets(_params: object): any;
+    protected async getsByFilter(_params: object): any;
+    protected async getPage(_params: object): any;
+    protected async save(doc: object): any;
+    protected async saves(docs: object): any;
+    protected async update(_params: object): any;
+    protected async updates(_params: object): any;
+    protected async updatesEach(_params: object): any;
+    protected async delete(_id: string): any;
+    protected async physicalDelete(_id: object): any;
+    protected async deletes(_ids: object): any;
 
-    protected async checkUnique(_params: object, message: object): object;
+    protected async getEdge(_id: string): any;
+    protected async getEdges(_ids: object): any;
+    protected async outVertices(_params: object): any;
+    protected async inVertices(_params: object): any;
+    protected async outVerticesPage(_params: object): any;
+    protected async inVerticesPage(_params: object): any;
+    protected async saveEdge(_params: object): any;
+    protected async saveEdges(_params: object): any;
+    protected async updateEdge(_params: object): any;
+    protected async updateEdges(_params: object): any;
+    protected async updateEdgesEach(_params: object): any;
+    protected async deleteEdge(_id: object): any;
+    protected async deleteEdges(_ids: object): any;
+    protected async deleteEdgesByVertex(_params: object): any;
 
-    protected async get(_id: object, options: object): object;
-    protected async getByFilter(filter: object, options: object): object;
-    protected async gets(_params: object): object;
-    protected async getsByFilter(_params: object): object;
-    protected async getPage(_params: object): object;
-    protected async save(doc: object): object;
-    protected async saves(docs: object): object;
-    protected async update(_params: object): object;
-    protected async updates(_params: object): object;
-    protected async updatesEach(_params: object): object;
-    protected async delete(_id: string): object;
-    protected async physicalDelete(_id: object): object;
-    protected async deletes(_ids: object): object;
-
-    protected async getEdge(_id: string): object;
-    protected async getEdges(_ids: object): object;
-    protected async outVertices(_params: object): object;
-    protected async inVertices(_params: object): object;
-    protected async outVerticesPage(_params: object): object;
-    protected async inVerticesPage(_params: object): object;
-    protected async saveEdge(_params: object): object;
-    protected async saveEdges(_params: object): object;
-    protected async updateEdge(_params: object): object;
-    protected async updateEdges(_params: object): object;
-    protected async updateEdgesEach(_params: object): object;
-    protected async deleteEdge(_id: object): object;
-    protected async deleteEdges(_ids: object): object;
-    protected async deleteEdgesByVertex(_params: object): object;
-
-    protected async outGraphVertices(_params: object): object;
-    protected async inGraphVertices(_params: object): object;
+    protected async outGraphVertices(_params: object): any;
+    protected async inGraphVertices(_params: object): any;
   }
   export class Dao extends BaseContextClass {
     constructor(ctx: Context);
@@ -1024,43 +1024,44 @@ declare module 'egg-arango' {
     protected aql: Aql;
     protected arango: Database;
     protected logger: EggLogger;
-    protected errorCode: string | '-1';
-    protected BizError(error: string, code?: string): object;
 
     protected getCollectionName(): object;
-
     protected async query(_query: object, _opt?: object): object;
-    protected async get(_id: object, options: object): object;
-    protected async getByFilter(filter: object, options: object): object;
-    protected async gets(_params: object): object;
-    protected async getsByFilter(_params: object): object;
-    protected async getPage(_params: object): object;
-    protected async save(doc: object): object;
-    protected async saves(docs: object): object;
-    protected async update(_params: object): object;
-    protected async updates(_params: object): object;
-    protected async updatesEach(_params: object): object;
-    protected async delete(_id: string): object;
-    protected async physicalDelete(_id: object): object;
-    protected async deletes(_ids: object): object;
 
-    protected async getEdge(_id: string): object;
-    protected async getEdges(_ids: object): object;
-    protected async outVertices(_params: object): object;
-    protected async inVertices(_params: object): object;
-    protected async outVerticesPage(_params: object): object;
-    protected async inVerticesPage(_params: object): object;
-    protected async saveEdge(_params: object): object;
-    protected async saveEdges(_params: object): object;
-    protected async updateEdge(_params: object): object;
-    protected async updateEdges(_params: object): object;
-    protected async updateEdgesEach(_params: object): object;
-    protected async deleteEdge(_id: object): object;
-    protected async deleteEdges(_ids: object): object;
-    protected async deleteEdgesByVertex(_params: object): object;
+    protected errorCode: string | '-1';
+    protected BizError(error: string, code?: string): any;
+ 
+    protected async get(_id: object, options?: object): any;
+    protected async getByFilter(filter: object, options?: object): any;
+    protected async gets(_params: object): any;
+    protected async getsByFilter(_params: object): any;
+    protected async getPage(_params: object): any;
+    protected async save(doc: object): any;
+    protected async saves(docs: object): any;
+    protected async update(_params: object): any;
+    protected async updates(_params: object): any;
+    protected async updatesEach(_params: object): any;
+    protected async delete(_id: string): any;
+    protected async physicalDelete(_id: object): any;
+    protected async deletes(_ids: object): any;
 
-    protected async outGraphVertices(_params: object): object;
-    protected async inGraphVertices(_params: object): object;
+    protected async getEdge(_id: string): any;
+    protected async getEdges(_ids: object): any;
+    protected async outVertices(_params: object): any;
+    protected async inVertices(_params: object): any;
+    protected async outVerticesPage(_params: object): any;
+    protected async inVerticesPage(_params: object): any;
+    protected async saveEdge(_params: object): any;
+    protected async saveEdges(_params: object): any;
+    protected async updateEdge(_params: object): any;
+    protected async updateEdges(_params: object): any;
+    protected async updateEdgesEach(_params: object): any;
+    protected async deleteEdge(_id: object): any;
+    protected async deleteEdges(_ids: object): any;
+    protected async deleteEdgesByVertex(_params: object): any;
+
+    protected async outGraphVertices(_params: object): any;
+    protected async inGraphVertices(_params: object): any;
   }
 
   /**

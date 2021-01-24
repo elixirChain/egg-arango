@@ -216,9 +216,16 @@ class BaseDao {
   }
 
   /**
-   * data: value(string/array)
-   * 处理数组属性的查询参数
+   * 
+   * @data: value(string/array)
    */
+
+  /**
+  * 处理数组属性的查询参数
+  * @param {string} alias 别名
+  * @param {string} key 属性名
+  * @param {any} data 数据值
+  */
   getArrayAttrAql(alias, key, data) {
     const arrayAttrAqlList = [];
     // 数组拆分元素用 or 连接
