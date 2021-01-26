@@ -1,8 +1,6 @@
 {
-  "extends": "eslint-config-egg/typescript",
-  "parserOptions": {
-    "project": "./tsconfig.json"
-  },
+  "extends": "eslint-config-egg",
+  "parser": "babel-eslint",
   "rules": {
     // https://eslint.org/docs/rules/no-extra-boolean-cast
     "no-extra-boolean-cast": ["off", {"enforceForLogicalOperands": true}],
