@@ -573,6 +573,7 @@ class BaseDao {
     this.validateParams(
       Joi.object({
         filter: this.filterMinRequired.required(),
+        sorts: this.sortSchema,
         options: this.optionsSchema,
       }),
       _params
@@ -580,6 +581,8 @@ class BaseDao {
 
     // 修改为使用FILTER可以利用索引
     const filterAql = this.getFilterAql(_params.filter);
+    // 拼装排序条件 默认创建时间倒序
+    const sortAql = this.getSortAql(this.getSortFieldAqlList(_params.sorts));
     // 获取响应结构
     const resAQL = this.getResAql(_params.options);
     // 转义静态数据
@@ -590,7 +593,7 @@ class BaseDao {
       LET list = (
         FOR t IN ${collection} 
           FILTER t._status == true ${filterAql}
-          SORT t._create_date desc 
+          ${sortAql} 
         RETURN ${resAQL}
       )
       ${staticDataAQL}`;
